@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.util.*;
 
 public class SubwayMap {
-    private final Map<String, List<SubwayStation>> stationMap = new HashMap<>();
+    private Map<String, List<SubwayStation>> stationMap = new HashMap<>();
 
     public void loadFromFile(String filename) throws IOException {
         BufferedReader reader = new BufferedReader(new FileReader(filename));
@@ -48,11 +48,11 @@ public class SubwayMap {
 
         visited.add(currentStation);
 
-        // 遍历当前站点的所有相邻站点
         for (SubwayStation neighbor : stationMap.get(currentStation)) {
             if (!visited.contains(neighbor.getName())) {
                 double neighborDistance = currentDistance + neighbor.getDistance();
                 if (neighborDistance <= maxDistance) {
+                    neighbor.setDistance(neighborDistance);
                     result.add(neighbor);
                     dfs(neighbor.getName(), neighborDistance, maxDistance, stationMap, visited, result);
                 }
