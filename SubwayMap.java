@@ -1,62 +1,62 @@
-package Test1;
+package Test2;
 
-
-
-
-
-
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.*;
 
 public class SubwayMap {
-    private Map<String, Map<String, Double>> map;
+    private final Map<String, List<SubwayStation>> stationMap = new HashMap<>();
 
-    public SubwayMap() {
-        this.map = new LinkedHashMap<>();
-    }
+    public void loadFromFile(String filename) throws IOException {
+        BufferedReader reader = new BufferedReader(new FileReader(filename));
+        String line;
+        String currentLine = null;
+        while ((line = reader.readLine()) != null) {
+            if (line.contains("号线站点间距")) {
+                currentLine = line.split("号")[0];
+            } else if (line.contains("---")) {
+                String[] parts = line.split("---|\\s+");
+                String station1 = parts[0];
+                String station2 = parts[1];
+                double distance = Double.parseDouble(parts[2]);
 
-    public void addLine(String lineName) {
-        map.put(lineName, new LinkedHashMap<>());
-    }
+                stationMap.putIfAbsent(station1, new ArrayList<>());
+                stationMap.putIfAbsent(station2, new ArrayList<>());
 
-    public void addStation(String lineName, String stationName, double distance) {
-        map.get(lineName).put(stationName, distance);
-    }
-
-    public double getDistance(String lineName, String station1, String station2) {
-        return map.get(lineName).get(station1) + map.get(lineName).get(station2);
-    }
-    public Set<String> getTransferStations() {
-        Map<String, Set<String>> stationLines = new HashMap<>();
-        for (String line : map.keySet()) {
-            for (String station : map.get(line).keySet()) {
-                stationLines.putIfAbsent(station, new HashSet<>());
-                stationLines.get(station).add(line);
+                stationMap.get(station1).add(new SubwayStation(station2, currentLine, distance));
+                stationMap.get(station2).add(new SubwayStation(station1, currentLine, distance));
             }
         }
+        reader.close();
+    }
+    public List<SubwayStation> getStationsWithinDistance(String station, double maxDistance) {
+        if (!stationMap.containsKey(station)) {
+            throw new IllegalArgumentException("Invalid station: " + station);
+        }
 
-        Set<String> transferStations = new HashSet<>();
-        for (String station : stationLines.keySet()) {
-            if (stationLines.get(station).size() > 1) {
-                StringBuilder sb = new StringBuilder();
-                sb.append("<").append(station).append(", <");
-                for (String line : stationLines.get(station)) {
-                    sb.append(line).append(" 号线、");
+        List<SubwayStation> result = new ArrayList<>();
+        Set<String> visited = new HashSet<>();
+        dfs(station, 0.0, maxDistance, stationMap, visited, result);
+
+        return result;
+    }
+
+    private void dfs(String currentStation, double currentDistance, double maxDistance,
+                     Map<String, List<SubwayStation>> stationMap, Set<String> visited,
+                     List<SubwayStation> result) {
+
+        visited.add(currentStation);
+
+        // 遍历当前站点的所有相邻站点
+        for (SubwayStation neighbor : stationMap.get(currentStation)) {
+            if (!visited.contains(neighbor.getName())) {
+                double neighborDistance = currentDistance + neighbor.getDistance();
+                if (neighborDistance <= maxDistance) {
+                    result.add(neighbor);
+                    dfs(neighbor.getName(), neighborDistance, maxDistance, stationMap, visited, result);
                 }
-                sb.setLength(sb.length() - 1); // Remove the last comma
-                sb.append(">>");
-                transferStations.add(sb.toString());
             }
         }
-
-        return transferStations;
     }
-
-
-    @Override
-    public String toString() {
-        return this.map.values().toString();
-    }
-
-
-
 }
